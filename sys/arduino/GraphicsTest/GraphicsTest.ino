@@ -35,8 +35,10 @@
 
 */
 
-#include <SPI.h>
 #include "Ucglib.h"
+
+#if defined(ARDUINO) || defined(U8G_RASPBERRY_PI)
+#include <SPI.h>
 
 /*
   Hardware SPI Pins:
@@ -79,6 +81,17 @@
 
 Ucglib_SSD1331_18x96x64_UNIVISION_SWSPI ucg(/*sclk=*/ 13, /*data=*/ 11, /*cd=*/ 9 , /*cs=*/ 10, /*reset=*/ 8);
 //Ucglib_SSD1331_18x96x64_UNIVISION_HWSPI ucg(/*cd=*/ 9 , /*cs=*/ 10, /*reset=*/ 8);
+
+#else
+#define USE_SDL 1
+// SDL
+Ucglib ucg(&ucg_sdl_dev_cb);
+
+int g_millis_val = 0;
+#define millis() (g_millis_val += 1000)
+#define ucg_sdl_get_key() (0)
+//int ucg_sdl_get_key(void);
+#endif
 
 
 #define T 4000
@@ -449,6 +462,17 @@ void setup(void)
   ucg.clearScreen();
 }
 
+void uiStep(void) {
+#if USE_SDL
+    int key = ucg_sdl_get_key();
+    switch (key) {
+    case 'q':
+    case ' ':
+        exit(0);
+    }
+#endif
+}
+
 void set_clip_range(void)
 {
   ucg_int_t x, y, w, h;
@@ -482,6 +506,7 @@ void loop(void)
   
   r++;
   ucglib_graphics_test();
+  uiStep();
   cross();
   triangle();
   fonts();  

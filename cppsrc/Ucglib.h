@@ -51,7 +51,7 @@
 #ifndef _UCGLIB_HH
 #define _UCGLIB_HH
 
-#include <Arduino.h>
+//#include <Arduino.h>
 #include <Print.h>
 
 #ifndef USE_PIN_LIST
@@ -59,7 +59,6 @@
 #endif
 
 #include "ucg.h"
-
 
 // Do not use Ucglib class directly, use Ucglib8Bit or Ucglib4WireSPI instead
 class Ucglib : public Print
@@ -76,10 +75,12 @@ class Ucglib : public Print
     ucg_int_t& get_tx(void) { return tx; };
     ucg_int_t& get_ty(void) { return ty; };
     ucg_t *get_ucg(void) { return &ucg; };
-    void init(void);
+    void init(ucg_dev_fnptr dev = ucg_dev_default_cb, ucg_dev_fnptr ext = ucg_ext_none);
   public:
     Ucglib(void) { init(); }
-    Ucglib(ucg_dev_fnptr dev, ucg_dev_fnptr ext = ucg_ext_none) { init(); dev_cb = dev; ext_cb = ext; }
+    Ucglib(ucg_dev_fnptr dev, ucg_dev_fnptr ext = ucg_ext_none) { init(dev, ext); }
+    virtual void begin(uint8_t is_transparent) {}
+    size_t print(const char msg[]){int len = strlen(msg); for (int i = 0; i < len; i ++) { write(msg[i]);} return len;}
 
     void setPrintPos(ucg_int_t x, ucg_int_t y) { tx = x; ty = y; }
     void setPrintDir(uint8_t dir) { tdir = dir; }
@@ -163,11 +164,42 @@ class Ucglib : public Print
     void drawGradientBox(ucg_int_t x, ucg_int_t y, ucg_int_t w, ucg_int_t h) { ucg_DrawGradientBox(&ucg, x, y, w, h); }
 };
 
+/*=========================================================================*/
+
+inline void Ucglib::init(ucg_dev_fnptr dev, ucg_dev_fnptr ext) {
+    uint8_t i;
+
+    // do a dummy init so that something usefull is part of the ucg structure
+    ucg_Init(&ucg, dev, ext, (ucg_com_fnptr)0);
+
+    // reset cursor position
+    tx = 0;
+    ty = 0;
+    tdir = 0;	// default direction for Arduino print()
+
+    for( i = 0; i < UCG_PIN_COUNT; i++ ) {
+        ucg.pin_list[i] = UCG_PIN_VAL_NONE;
+    }
+}
+
+inline size_t Ucglib::write(uint8_t c) {
+    ucg_int_t delta;
+    delta = ucg_DrawGlyph(get_ucg(), get_tx(), get_ty(), get_tdir(), c);
+    switch(get_tdir()) {
+        case 0: get_tx() += delta; break;
+        case 1: get_ty() += delta; break;
+        case 2: get_tx() -= delta; break;
+        default: case 3: get_ty() -= delta; break;
+    }
+    return 1;
+}
+
 class Ucglib4WireSWSPI : public Ucglib
 {
   public:
     Ucglib4WireSWSPI(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t scl, uint8_t sda, uint8_t cd, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 
 	  ucg.pin_list[UCG_PIN_SCL] = scl; 	
 	  ucg.pin_list[UCG_PIN_SDA] = sda; 
@@ -187,7 +219,8 @@ class Ucglib3WireILI9325SWSPI : public Ucglib
 {
   public:
     Ucglib3WireILI9325SWSPI(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t scl, uint8_t sda, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 
 	  ucg.pin_list[UCG_PIN_SCL] = scl; 	
 	  ucg.pin_list[UCG_PIN_SDA] = sda; 
@@ -200,7 +233,8 @@ class Ucglib3Wire9bitSWSPI : public Ucglib
 {
   public:
     Ucglib3Wire9bitSWSPI(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t scl, uint8_t sda, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 
 	  ucg.pin_list[UCG_PIN_SCL] = scl; 	
 	  ucg.pin_list[UCG_PIN_SDA] = sda; 
@@ -213,7 +247,8 @@ class Ucglib4WireHWSPI : public Ucglib
 {
   public:
     Ucglib4WireHWSPI(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t cd, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 
 	ucg.pin_list[UCG_PIN_RST] = reset; 
 	ucg.pin_list[UCG_PIN_CD] = cd;
@@ -235,7 +270,8 @@ class Ucglib3Wire9bitHWSPI : public Ucglib
 {
   public:
     Ucglib3Wire9bitHWSPI(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 
 	  ucg.pin_list[UCG_PIN_RST] = reset; 
 	  ucg.pin_list[UCG_PIN_CS] = cs; }
@@ -248,7 +284,8 @@ class Ucglib8BitPortD : public Ucglib
 {
   public:
     Ucglib8BitPortD(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t wr, uint8_t cd, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 	  ucg.pin_list[UCG_PIN_RST] = reset;
 	  ucg.pin_list[UCG_PIN_CD] = cd;
 	  ucg.pin_list[UCG_PIN_CS] = cs;
@@ -270,7 +307,8 @@ class Ucglib8Bit : public Ucglib
 {
   public:
     Ucglib8Bit(ucg_dev_fnptr dev, ucg_dev_fnptr ext, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t wr, uint8_t cd, uint8_t cs = UCG_PIN_VAL_NONE, uint8_t reset = UCG_PIN_VAL_NONE)
-      { init(); dev_cb = dev; ext_cb = ext; 
+      {
+	  init(dev, ext);
 	  //ucg.data_port[UCG_PIN_RST] =  portOutputRegister(digitalPinToPort(reset));
 	  //ucg.data_mask[UCG_PIN_RST] =  digitalPinToBitMask(reset);
 	  ucg.pin_list[UCG_PIN_RST] = reset;

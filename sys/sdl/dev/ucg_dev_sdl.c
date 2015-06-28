@@ -32,15 +32,12 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
 
 */
-  
-  
 
-
+#include <assert.h>
 
 #include "ucg.h"
 #include "SDL.h"
 #include "SDL_video.h"
-#include <assert.h>
 
 #define HEIGHT (64)
 #define WIDTH 128

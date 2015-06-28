@@ -36,7 +36,9 @@
   
 */
 
+#if defined(ARDUINO) || defined(U8G_RASPBERRY_PI)
 #include <SPI.h>
+#endif
 
 #include "Ucglib.h"
 
@@ -144,7 +146,7 @@ static void ucg_com_arduino_send_generic_SW_SPI(ucg_t *ucg, uint8_t val)
   
 }
 
-#else
+#elif defined(ARDUINO) || defined(U8G_RASPBERRY_PI)
 
 static void ucg_com_arduino_send_generic_SW_SPI(ucg_t *ucg, uint8_t data)
 {
@@ -174,6 +176,7 @@ static void ucg_com_arduino_send_generic_SW_SPI(ucg_t *ucg, uint8_t data)
 
 #endif
 
+#if defined(__AVR__) || defined(ARDUINO) || defined(U8G_RASPBERRY_PI)
 static int16_t ucg_com_arduino_generic_SW_SPI(ucg_t *ucg, int16_t msg, uint16_t arg, uint8_t *data)
 {
 
@@ -278,6 +281,7 @@ static int16_t ucg_com_arduino_generic_SW_SPI(ucg_t *ucg, int16_t msg, uint16_t 
   }
   return 1;
 }
+#endif
 
 void Ucglib4WireSWSPI::begin(uint8_t is_transparent)
 { 
@@ -286,6 +290,7 @@ void Ucglib4WireSWSPI::begin(uint8_t is_transparent)
 }
 
 
+#if defined(__AVR__) || defined(ARDUINO) || defined(U8G_RASPBERRY_PI)
 /*=========================================================================*/
 /* 8 Bit SW SPI for ILI9325 (mode IM3=0, IM2=1, IM1=0, IM0=0 */
 
@@ -416,6 +421,7 @@ static int16_t ucg_com_arduino_illi9325_SW_SPI(ucg_t *ucg, int16_t msg, uint16_t
   }
   return 1;
 }
+#endif
 
 void Ucglib3WireILI9325SWSPI::begin(uint8_t is_transparent)
 { 
@@ -1274,34 +1280,4 @@ void Ucglib4WireHWSPI::begin(uint8_t is_transparent)
   ucg_SetFontMode(&ucg, is_transparent);
 }
 
-
-/*=========================================================================*/
-
-void Ucglib::init(void) {
-  uint8_t i;
-  
-  // do a dummy init so that something usefull is part of the ucg structure
-  ucg_Init(&ucg, ucg_dev_default_cb, ucg_ext_none, (ucg_com_fnptr)0);
-
-  // reset cursor position
-  tx = 0;
-  ty = 0;
-  tdir = 0;	// default direction for Arduino print() 
-  
-  for( i = 0; i < UCG_PIN_COUNT; i++ )
-    ucg.pin_list[i] = UCG_PIN_VAL_NONE;
-  
-}
-
-size_t Ucglib::write(uint8_t c) { 
-  ucg_int_t delta;
-  delta = ucg_DrawGlyph(get_ucg(), get_tx(), get_ty(), get_tdir(), c); 
-  switch(get_tdir()) {
-    case 0: get_tx() += delta; break;
-    case 1: get_ty() += delta; break;
-    case 2: get_tx() -= delta; break;
-    default: case 3: get_ty() -= delta; break;
-  }
-  return 1;
-}
 

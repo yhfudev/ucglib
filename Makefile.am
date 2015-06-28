@@ -130,7 +130,7 @@ libucgwpi_la_LDFLAGS=-lwiringPi
 libucgwpi_la_LIBADD=$(top_builddir)/libucgbase.la
 
 
-BIN_SDL=ucgsdl_showtga ucgsdl_testdisk ucgsdl_testfont ucgsdl_testfontr ucgsdl_testrotate ucgsdl_testscale ucgsdl_logo
+BIN_SDL=ucgsdl_gtest ucgsdl_showtga ucgsdl_testdisk ucgsdl_testfont ucgsdl_testfontr ucgsdl_testrotate ucgsdl_testscale ucgsdl_logo
 
 BIN_WPI=ucgwpi_testfont ucgwpi_gtest ucgwpi_logo
 
@@ -143,6 +143,10 @@ test:
 
 bin_PROGRAMS=$(BIN_TOOLS) $(BIN_SDL)
 #noinst_PROGRAMS=$(BIN_WPI)
+
+ucgsdl_gtest_SOURCES=nonarduino/wpimain.cpp sys/arduino/GraphicsTest/GraphicsTest.ino
+ucgsdl_gtest_CPPFLAGS=$(libucgsdl_la_CFLAGS)
+ucgsdl_gtest_LDFLAGS=-lucgbase -lucgsdl $(libucgsdl_la_LDFLAGS)
 
 ucgsdl_showtga_SOURCES=sys/sdl/show_tga/main.c
 ucgsdl_showtga_CPPFLAGS=$(libucgsdl_la_CFLAGS)
@@ -178,7 +182,7 @@ ucgsdl_logo_LDFLAGS=-lucgbase -lucgsdl $(libucgsdl_la_LDFLAGS)
 
 .pde.cpp:
 	cp $< $@
-.ino.o:
+.ino.cpp:
 	cp $< $@
 
 #ucgwpi_logo_SOURCES=sys/arm/examples/u8g_logo/u8g_logo.c
