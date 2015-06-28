@@ -731,6 +731,44 @@ int8_t ucg_GetGlyphWidth(ucg_t *ucg, uint8_t requested_encoding);
 ucg_int_t ucg_DrawGlyph(ucg_t *ucg, ucg_int_t x, ucg_int_t y, uint8_t dir, uint8_t encoding);
 ucg_int_t ucg_DrawString(ucg_t *ucg, ucg_int_t x, ucg_int_t y, uint8_t dir, const char *str);
 
+
+// utf-8 string in source code
+#define USE_RBTREE_LINUX 0
+
+#if USE_RBTREE_LINUX
+#include "rbtree.h"
+#else
+#include "tree-bsd.h"
+#endif
+
+#define NUM_ARRAY(a) (sizeof(a)/sizeof(a[0]))
+#define _UCGT(a) a
+
+#define UCG_DEFAULT_FONT ucg_font_helvB08_hr // ucg_font_9x15
+
+typedef struct _ucg_fontinfo_t {
+    int page;
+    int begin;
+    int end;
+    int size;
+    const ucg_fntpgm_uint8_t *fntdata;
+
+#if USE_RBTREE_LINUX
+    struct rb_node node;
+#else
+    RB_ENTRY(_ucg_fontinfo_t) node;
+#endif
+} ucg_fontinfo_t;
+
+extern int fontinfo_init (ucg_fontinfo_t * fntinfo, int number);
+extern char fontinfo_isinited(void);
+//void ucg_SetUtf8Fonts (ucg_fontinfo_t * fntinfo, int number);
+//char ucg_Utf8FontIsInited(void);
+#define ucg_SetUtf8Fonts        fontinfo_init
+#define ucg_Utf8FontIsInited    fontinfo_isinited
+
+ucg_int_t ucg_DrawUtf8String(ucg_t *ucg, ucg_int_t x, ucg_int_t y, uint8_t dir, const char *utf8_msg);
+
 /* Mode selection/Font assignment */
 
 void ucg_SetFontRefHeightText(ucg_t *ucg);

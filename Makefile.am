@@ -82,6 +82,7 @@ SRC_BASE= \
     csrc/ucg_dev_tft_128x128_ili9163.c \
     csrc/ucg_pixel_font_data.c \
     csrc/ucg_dev_ic_ili9325.c \
+    csrc/ucg_fontutf8.c \
     $(NULL)
 
 SRC_COMMON= \
@@ -130,19 +131,30 @@ libucgwpi_la_LDFLAGS=-lwiringPi
 libucgwpi_la_LIBADD=$(top_builddir)/libucgbase.la
 
 
-BIN_SDL=ucgsdl_gtest ucgsdl_showtga ucgsdl_testdisk ucgsdl_testfont ucgsdl_testfontr ucgsdl_testrotate ucgsdl_testscale ucgsdl_logo
+BIN_SDL=ucgsdl_fontutf8test ucgsdl_gtest ucgsdl_showtga ucgsdl_testdisk ucgsdl_testfont ucgsdl_testfontr ucgsdl_testrotate ucgsdl_testscale ucgsdl_logo
 
-BIN_WPI=ucgwpi_testfont ucgwpi_gtest ucgwpi_logo
+BIN_WPI=ucgwpi_fontutf8test ucgwpi_testfont ucgwpi_gtest ucgwpi_logo
 
-BIN_TOOLS=bdf2ucg
+BIN_TOOLS=bdf2ucg genucgpages
 bdf2ucg_SOURCES= \
     tools/font/bdf2ucg/bdf2ucg.c \
     $(NULL)
 test:
 	./bdf2ucg -f 2 tools/font/bdf/9x18.bdf ucg_aafont_9x18 test_ucg_aafont_9x18.c
 
+genucgpages_SOURCES= \
+    tools/font/genucgpages/genucgpages.c \
+    tools/font/genucgpages/getline.h \
+    tools/font/genucgpages/getline.c \
+    $(NULL)
+
 bin_PROGRAMS=$(BIN_TOOLS) $(BIN_SDL)
 #noinst_PROGRAMS=$(BIN_WPI)
+
+ucgsdl_fontutf8test_SOURCES=nonarduino/wpimain.cpp sys/arduino/fontutf8test/fontutf8test.cpp sys/arduino/fontutf8test/fontutf8-data.h
+#ucgsdl_fontutf8test_SOURCES=sys/sdl/fontutf8test/main.c sys/sdl/fontutf8test/fontutf8-data.h
+ucgsdl_fontutf8test_CPPFLAGS=$(libucgsdl_la_CFLAGS)
+ucgsdl_fontutf8test_LDFLAGS=-lucgbase -lucgsdl $(libucgsdl_la_LDFLAGS)
 
 ucgsdl_gtest_SOURCES=nonarduino/wpimain.cpp sys/arduino/GraphicsTest/GraphicsTest.ino
 ucgsdl_gtest_CPPFLAGS=$(libucgsdl_la_CFLAGS)
@@ -185,8 +197,13 @@ ucgsdl_logo_LDFLAGS=-lucgbase -lucgsdl $(libucgsdl_la_LDFLAGS)
 .ino.cpp:
 	cp $< $@
 
-#ucgwpi_logo_SOURCES=sys/arm/examples/u8g_logo/u8g_logo.c
-#ucgwpi_logo_SOURCES=sys/atmega/u8g_logo/u8g_logo.c
+ucgwpi_fontutf8test_SOURCES=nonarduino/wpimain.cpp sys/arduino/fontutf8test/fontutf8test.cpp sys/arduino/fontutf8test/fontutf8-data.h
+ucgwpi_fontutf8test_CFLAGS=$(libucgwpi_la_CFLAGS)
+ucgwpi_fontutf8test_CPPFLAGS=$(libucgwpi_la_CFLAGS)
+ucgwpi_fontutf8test_LDFLAGS=-lucgbase -lucgwpi $(libucgwpi_la_LDFLAGS)
+
+#ucgwpi_logo_SOURCES=sys/arm/examples/ucg_logo/ucg_logo.c
+#ucgwpi_logo_SOURCES=sys/atmega/ucg_logo/ucg_logo.c
 ucgwpi_logo_SOURCES=nonarduino/wpimain.cpp sys/arduino/UcgLogo/UcgLogo.ino
 ucgwpi_logo_CFLAGS=$(libucgwpi_la_CFLAGS)
 ucgwpi_logo_CPPFLAGS=$(libucgwpi_la_CFLAGS)
@@ -199,3 +216,15 @@ ucgwpi_gtest_LDFLAGS=-lucgbase -lucgwpi $(libucgwpi_la_LDFLAGS)
 ucgwpi_testfont_SOURCES=nonarduino/wpimain.cpp sys/arduino/HowToUseFonts/HowToUseFonts.ino
 ucgwpi_testfont_CPPFLAGS=$(libucgwpi_la_CFLAGS)
 ucgwpi_testfont_LDFLAGS=-lucgbase -lucgwpi $(libucgwpi_la_LDFLAGS)
+
+sys/arduino/fontutf8test/fontutf8-data.h: sys/arduino/fontutf8test/fontutf8test.cpp tools/font/genucgpages/genucgpages.sh tools/font/genucgpages/unifont.bdf
+	cd sys/arduino/fontutf8test/ && ../../../tools/font/genucgpages/genucgpages.sh
+sys/arduino/fontutf8test/fontutf8test.cpp: sys/arduino/fontutf8test/fontutf8-data.h
+	touch sys/arduino/fontutf8test/fontutf8test.cpp
+
+sys/arduino/fontutf8test/genucgpages.sh: genucgpages
+	touch sys/arduino/fontutf8test/genucgpages.sh
+tools/font/genucgpages/unifont-7.0.06.bdf.gz:
+	cd tools/font/genucgpages && wget http://unifoundry.com/pub/unifont-7.0.06/font-builds/unifont-7.0.06.bdf.gz
+tools/font/genucgpages/unifont.bdf: tools/font/genucgpages/unifont-7.0.06.bdf.gz
+	cd tools/font/genucgpages && gunzip -c unifont-7.0.06.bdf.gz > unifont.bdf
